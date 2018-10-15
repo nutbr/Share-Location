@@ -1,0 +1,325 @@
+//
+
+//  ViewController.h
+
+//  DesafioCompartilharPosicao
+
+//
+
+//  Created by Sábado on 08/11/14.
+
+//  Copyright (c) 2014 RUI TOLEDO. All rights reserved.
+
+//
+
+ 
+
+#import <UIKit/UIKit.h>
+
+#import <MapKit/MapKit.h>
+
+#import <CoreLocation/CoreLocation.h>
+
+#import <MessageUI/MessageUI.h>
+
+ 
+
+@interface ViewController : UIViewController<CLLocationManagerDelegate, MKMapViewDelegate, MFMailComposeViewControllerDelegate>
+
+ 
+
+ 
+
+@property (weak, nonatomic) IBOutletMKMapView *mapa;
+
+ 
+
+@property(nonatomic, strong) CLLocationManager *gerenciadorGps;
+
+ 
+
+- (IBAction)rastrearPosicao:(UIBarButtonItem *)sender;
+
+ 
+
+- (IBAction)compartilharPosicao:(UIBarButtonItem *)sender;
+
+ 
+
+@property (weak, nonatomic) IBOutletUILabel *labelLatLong;
+
+ 
+
+@property(nonatomic, assign) BOOL yesno;
+
+ 
+
+ 
+
+@property(nonatomic, assign) CLLocationCoordinate2D coordenadas;
+
+ 
+
+@end
+
+ 
+
+//
+
+//  ViewController.m
+
+//  DesafioCompartilharPosicao
+
+//
+
+//  Created by Sábado on 08/11/14.
+
+//  Copyright (c) 2014 RUI TOLEDO. All rights reserved.
+
+//
+
+ 
+
+#import "ViewController.h"
+
+ 
+
+@interfaceViewController ()
+
+ 
+
+@end
+
+ 
+
+@implementation ViewController
+
+ 
+
+- (void)viewDidLoad
+
+{
+
+    [superviewDidLoad];
+
+// Do any additional setup after loading the view, typically from a nib.
+
+    
+
+    self.gerenciadorGps = [[CLLocationManageralloc]init];
+
+    self.gerenciadorGps.desiredAccuracy = kCLLocationAccuracyBest;
+
+    self.mapa.delegate=self;
+
+    self.yesno=NO;
+
+    
+
+}
+
+ 
+
+- (void)didReceiveMemoryWarning
+
+{
+
+    [superdidReceiveMemoryWarning];
+
+    // Dispose of any resources that can be recreated.
+
+}
+
+ 
+
+ 
+
+ 
+
+- (IBAction)rastrearPosicao:(UIBarButtonItem *)sender
+
+{
+
+    self.mapa.showsUserLocation=YES;
+
+    self.gerenciadorGps.delegate=self;
+
+    [self.gerenciadorGpsstartUpdatingLocation];
+
+    self.yesno=YES;
+
+}
+
+ 
+
+ 
+
+ 
+
+-(void)locationManager:(CLLocationManager *)manager didUpdateLocations:(NSArray *)locations
+
+{
+
+    NSLog(@"%@", [locations lastObject]);
+
+    CLLocation *localizacao = [locations lastObject];
+
+    MKCoordinateSpan zoom = MKCoordinateSpanMake(0.001, 0.001);
+
+    MKCoordinateRegion regiao = MKCoordinateRegionMake(localizacao.coordinate, zoom);
+
+    
+
+    self.coordenadas=localizacao.coordinate;
+
+    
+
+    [self.mapa setRegion:regiao animated:YES];
+
+    self.labelLatLong.text=  [NSStringstringWithFormat:@"Lat %f Long %f", localizacao.coordinate.latitude, localizacao.coordinate.longitude];
+
+}
+
+ 
+
+ 
+
+-(void)mapView:(MKMapView *)mapView regionWillChangeAnimated:(BOOL)animated
+
+{
+
+    [self.gerenciadorGpsstopUpdatingLocation];
+
+ 
+
+}
+
+ 
+
+ 
+
+- (IBAction)compartilharPosicao:(UIBarButtonItem *)sender
+
+{
+
+    if (self.yesno==YES)
+
+    {
+
+        
+
+    if ([MFMailComposeViewControllercanSendMail])
+
+    {
+
+        MFMailComposeViewController *mailCOmpose = [[MFMailComposeViewControlleralloc]init];
+
+        mailCOmpose.mailComposeDelegate=self;
+
+        [mailCOmpose setSubject:@"Localização Atual"];
+
+        
+
+        [mailCOmpose setMessageBody:[NSStringstringWithFormat:@"<strong>Boa tarde,<br>Sua <i>latitude</i> é %f e sua <i>longitude</i> é %f.</strong>",self.coordenadas.latitude, self.coordenadas.longitude] isHTML:YES];
+
+        NSArray *arrayDestinatarios = @[@"rui.toledo@uol.com.br"];
+
+        [mailCOmpose setToRecipients:arrayDestinatarios];
+
+        [selfpresentViewController:mailCOmpose animated:YEScompletion:nil];
+
+    }
+
+    else
+
+    {
+
+        UIAlertView *alerta = [[UIAlertViewalloc]initWithTitle:@"Aviso"message:@"Não é possível enviar o email no momento."delegate:nilcancelButtonTitle:nilotherButtonTitles:@"Ok", nil];
+
+        [alerta show];
+
+    }
+
+    }
+
+}
+
+ 
+
+ 
+
+-(void)mailComposeController:(MFMailComposeViewController *)controller didFinishWithResult:(MFMailComposeResult)result error:(NSError *)error
+
+{
+
+    
+
+    UIAlertView *alerta = [[UIAlertView alloc]initWithTitle:@"Alerta" message:@"" delegate:self cancelButtonTitle:nil otherButtonTitles:@"Ok", nil];
+
+ 
+
+    switch (result)
+
+    {
+
+        case MFMailComposeResultSent:
+
+            alerta.message=@"Email enviado com sucesso";
+
+            break;
+
+            
+
+        case MFMailComposeResultFailed:
+
+            alerta.message=@"Falha no Envio!";
+
+            break;
+
+            
+
+        case MFMailComposeResultCancelled:
+
+            alerta.message=@"Email Cancelado";
+
+            break;
+
+            
+
+        case MFMailComposeResultSaved:
+
+            alerta.message=@"Email Salvo";
+
+            break;
+
+            
+
+            
+
+        default:
+
+            break;
+
+    }
+
+ 
+
+    [controller dismissViewControllerAnimated:YES completion:^
+
+     {
+
+         [alerta show];
+
+     }];
+
+    
+
+    
+
+}
+
+ 
+
+ 
+
+@end
